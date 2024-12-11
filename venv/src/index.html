@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energías limpias</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" />
+    <script>
+
+        $(document).ready(function() { 
+            $('#imagen1').click(function() { 
+                var img = $('<img />', { 
+                    src: '/image/1', 
+                    alt: 'Imagen 1', 
+                    style: 'width: 100%; height: 100%;' 
+                }); 
+                $('#imagen1').empty().append(img); 
+            }); 
+
+            $('#imagen2').click(function() { 
+                var img = $('<img />', { 
+                    src: '/image/2', 
+                    alt: 'Imagen 2', 
+                    style: 'width: 100%; height: 100%;' 
+                }); 
+                $('#imagen2').empty().append(img); 
+            }); 
+            $('#imagen3').click(function() { 
+                var img = $('<img />', { 
+                    src: '/image/3', 
+                    alt: 'Imagen 3', 
+                    style: 'width: 100%; height: 100%;' 
+                }); 
+                $('#imagen3').empty().append(img); 
+            }); 
+        });
+
+        function toggleAccordion(panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel.style.display === "block") {
+                panel.style.display = "none";
+            } else {
+                panel.style.display = "block";
+            }
+        }
+
+        function mostrarGrafico() {
+            $.ajax({
+                url: '/graficar/' + $("#sl_paises").val() + "/" + $("#sl_grafico").val(),
+                type: 'GET',
+                success: function(r) {
+                    $("#info").html(r);
+                }
+            });
+        }
+
+        function cargarData() {
+            $.ajax({
+                url: '/cargarfuentedatos',
+                type: 'GET',
+                success: function(r) {
+                    $("#info").html(r);
+                    $('#t_datos').DataTable();
+                }
+            });
+        }
+
+        function calculadora() {
+            // Crear un formulario de entrada para la calculadora
+            const calculatorForm = `
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <label for="kwMes" class="form-label">Consumo de energía (kWh/mes):</label>
+                    <select id="kwMes" class="form-select">
+                        ${Array.from({length: 5000}, (_, i) => (i + 1) ).map(value => `<option value="${value}">${value} kWh</option>`).join('')}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="horasLuz" class="form-label">Horas de luz solar promedio (diarias):</label>
+                    <select id="horasLuz" class="form-select">
+                        ${Array.from({length: 24}, (_, i) => i + 1).map(value => `<option value="${value}">${value} horas</option>`).join('')}
+                    </select>
+                </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-12 text-center">
+                        <button onclick="calcularPaneles()" class="p-2 rounded-lg shadow-md transition duration-300 ease-in-out hover:bg-green-400">Calcular</button>
+                    </div>
+                </div>
+                <div id="resultado" class="mt-4"></div>`;
+            $("#info2").html(calculatorForm);
+        }
+
+        function calcularPaneles() {
+            const kwMes = parseFloat($("#kwMes").val());
+            const horasLuz = parseFloat($("#horasLuz").val());
+
+            if (!kwMes || !horasLuz || kwMes <= 0 || horasLuz <= 0) {
+                $("#resultado").html("<div class='p-3 bg-gray-100 text-black rounded-lg shadow-md transition duration-600 ease-in-out hover:bg-red-300'>Por favor, seleccione valores válidos.</div>");
+                return;
+            }
+
+            // Suposiciones:
+            const eficienciaPanel = 0.18; // Eficiencia promedio del 18%
+            const potenciaPanel = 0.3; // Cada panel genera 0.3 kW en condiciones óptimas
+
+            // Cálculos:
+            const energiaDiaria = kwMes / 30; // Consumo diario en kWh
+            const energiaSolarDiaria = horasLuz * potenciaPanel * eficienciaPanel; // Energía producida por un panel al día
+            const panelesNecesarios = Math.ceil(energiaDiaria / energiaSolarDiaria); // Número de paneles necesarios
+
+            // Resultado:
+            const resultadoHTML = `
+                <div class='p-3 bg-green-100 text-black rounded-lg shadow-md transition duration-300 ease-in-out hover:bg-green-600'>
+                    <h4>Resultados:</h4>
+                    <p><strong>Consumo mensual:</strong> ${kwMes.toFixed(2)} kWh</p>
+                    <p><strong>Horas de luz solar:</strong> ${horasLuz.toFixed(2)} horas/día</p>
+                    <p><strong>Paneles necesarios:</strong> ${panelesNecesarios} panel(es)</p>
+                    <p><strong>Eficiencia de los paneles:</strong> ${(eficienciaPanel * 100).toFixed(2)}%</p>
+                </div>
+            `;
+            $("#resultado").html(resultadoHTML);
+        }
+
+    </script>
+</head>
+<body class="bg-green-100 overflow-y-scroll">
+
+    <header class="h-16 border-b-2 mb-12 border-gray-200 bg-green-600 flex items-center justify-between px-4 py-2">
+        <h1 class="text-2xl font-bold text-black">Energías limpias</h1>
+    </header>
+
+    <main class="bg-white container mx-auto px-4 py-4 gap-2 hover:bg-blue-500 hover:text-white rounded-lg transition-all duration-700 shadow-lg">
+        <h1 class="text-3xl font-bold">Bienvenido a buscar alternativas...</h1>
+        <p class="text-xl mt-2">Estamos encantados de que hayas visitado nuestro sitio web<br> Contacta por nuestros canales oficiales en caso de tener alguna información que aportar</p>
+        <p class="text-xl mt-2">Éxitos en tu descubrimiento</p>
+    </main>
+
+    <div class="container-fluid text-center mb-20">
+        
+        <div class="max-w-2xl mx-auto mt-12">
+            <div class="space-y-4">
+                <div class="bg-green-500 text-black rounded-lg shadow-md transition duration-700 ease-in-out hover:bg-blue-600 hover:text-white">
+                    <button class="w-full flex justify-between items-center p-4 text-left" id="accordion-1" onclick="toggleAccordion('panel-1')">
+                        <span>Fuente de datos</span>
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                            <path d="M9.293 12.293a1 1 0 011.414 0L14 15.414l4.293-4.293a1 1 0 011.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414z" fill-rule="evenodd" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                    <div id="panel-1" class="hidden p-4 bg-blue-100 text-black rounded-b-lg">
+                        <div id="info"><button onclick="cargarData()" class="p-3 rounded-lg shadow-md transition duration-300 ease-in-out hover:bg-blue-600">Abrir</button></div>
+                    </div>
+                </div>
+                <div class="bg-green-500 text-black rounded-lg shadow-md transition duration-700 ease-in-out hover:bg-blue-600 hover:text-white">
+                    <button class="w-full flex justify-between items-center p-4 text-left" id="accordion-2" onclick="toggleAccordion('panel-2')">
+                        <span>Calculadora</span>
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                            <path d="M9.293 12.293a1 1 0 011.414 0L14 15.414l4.293-4.293a1 1 0 011.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414z" fill-rule="evenodd" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                    <div id="panel-2" class="hidden p-4 bg-blue-100 text-black rounded-b-lg">
+                        <div id="info2"><button onclick="calculadora()" class="p-3 rounded-lg shadow-md transition duration-300 ease-in-out hover:bg-blue-600">Abrir</button></div>
+                    </div>
+                </div>
+            </div>    
+                
+            <div id="imagenes" class="mt-12 container mx-auto px-4 py-4 gap-2 hover:bg-blue-400 hover:text-white rounded-lg transition-all duration-700 shadow-lg">
+                <center><h1 class="text-3xl font-bold">Fotos de la zona</h1></center>
+                <div class="grid grid-cols-6 gap-4 mt-4">
+                    <div class="col-span-2" id="imagen1">Montaña</div>
+                    <div class="col-span-2" id="imagen2">Muralla</div>
+                    <div class="col-span-2" id="imagen3">Paisaje</div>  
+                </div><br>
+                <center><p>De click en una palabra para ver la foto correspondiente</p></center>
+            </div>
+
+            <footer class="h-12 border-t-2 border-gray-200 bg-green-600 flex items-center justify-between px-4 py-2 bottom-0 left-0 right-0 fixed mt-5">
+                <h1 class="text-2xl font-bold text-white">Cambia e Inventa</h1>
+                <h4 class="text-sm font-bold text-white relative bottom-1 right-1">2024 © M-D-H</h4>
+            </footer>
+
+
